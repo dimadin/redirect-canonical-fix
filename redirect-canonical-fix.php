@@ -599,3 +599,57 @@ function redirect_canonical_fix( $requested_url = null, $do_redirect = true ) {
 
 remove_action( 'template_redirect', 'redirect_canonical' );
 add_action( 'template_redirect', __NAMESPACE__ . '\redirect_canonical_fix' );
+
+/**
+ * Check whether plugin has updates or is not needed anymore.
+ *
+ * @since 1.0.0
+ */
+function check_updates() {
+	$request = wp_remote_get( 'https://raw.githubusercontent.com/dimadin/redirect-canonical-fix/rest-api/latest.json' );
+
+	if ( ! is_wp_error( $request ) ) {
+		$response = json_decode( wp_remote_retrieve_body( $request ), true );
+
+		if ( is_array( $response ) ) {
+			// Get current WordPress branch.
+			$current_branch = implode( '.', array_slice( preg_split( '/[.-]/', get_bloginfo( 'version' ) ), 0, 2 ) );
+
+			// First check if plugin should be disabled.
+			if ( isset( $response['disable'] ) && is_array( $response['disable'] ) && isset( $response['disable']['wp_version'] ) ) {
+				$disable_in_branch = $response['disable']['wp_version'];
+
+				if ( version_compare( $current_branch, $disable_in_branch, '>=' ) ) {
+					if ( ! function_exists( 'deactivate_plugins' ) ) {
+						require ABSPATH . '/wp-admin/includes/plugin.php';
+					}
+
+					deactivate_plugins( plugin_basename( __FILE__ ) );
+				}
+			} elseif ( isset( $response['version'] ) && is_array( $response['version'] ) && isset( $response['version'][ $current_branch ] ) ) {
+				// Then check if there is newer version.
+				if ( version_compare( VERSION, $response['version'][ $current_branch ], '<' ) ) {
+					set_site_transient( 'md_redirect_canonical_fix_new_version', true, DAY_IN_SECONDS );
+				} else {
+					delete_site_transient( 'md_redirect_canonical_fix_new_version' );
+				}
+			}
+		}
+	}
+}
+add_action( 'set_site_transient_update_plugins', __NAMESPACE__ . '\check_updates' );
+
+/**
+ * Add a plugin row to display update notification.
+ *
+ * @since 1.0.0
+ *
+ * @param string $file Path to the plugin file, relative to the plugins directory.
+ */
+function display_info_row( $file ) {
+	// Check if this is current file.
+	if ( plugin_basename( __FILE__ ) === $file && get_site_transient( 'md_redirect_canonical_fix_new_version' ) ) {
+		echo '<tr class="plugin-update-tr"><td colspan="3" class="plugin-update colspanchange"><div class="update-message notice inline notice-warning notice-alt"><p>' . __( 'There is a new version of the plugin MD Redirect Canonical Fix. Please visit plugin site and update as soon as possible.', 'redirect-canonical-fix' ) . '</p></div></td></tr>';
+	}
+}
+add_action( 'after_plugin_row', __NAMESPACE__ . '\display_info_row' );
