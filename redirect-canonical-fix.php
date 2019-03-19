@@ -548,21 +548,20 @@ function redirect_canonical_fix( $requested_url = null, $do_redirect = true ) {
 
 	// Hex encoded octets are case-insensitive.
 	if ( false !== strpos( $requested_url, '%' ) ) {
-		if ( ! function_exists( 'lowercase_octets' ) ) {
-			/**
-			 * Converts the first hex-encoded octet match to lowercase.
-			 *
-			 * @since 3.1.0
-			 * @ignore
-			 *
-			 * @param array $matches Hex-encoded octet matches for the requested URL.
-			 * @return string Lowercased version of the first match.
-			 */
-			function lowercase_octets( $matches ) {
-				return strtolower( $matches[0] );
-			}
-		}
-		$requested_url = preg_replace_callback( '|%[a-fA-F0-9][a-fA-F0-9]|', __NAMESPACE__ . '\lowercase_octets', $requested_url );
+		/**
+		 * Converts the first hex-encoded octet match to lowercase.
+		 *
+		 * @since 3.1.0
+		 * @ignore
+		 *
+		 * @param array $matches Hex-encoded octet matches for the requested URL.
+		 * @return string Lowercased version of the first match.
+		 */
+		$lowercase_octets = function ( $matches ) {
+			return strtolower( $matches[0] );
+		};
+
+		$requested_url = preg_replace_callback( '|%[a-fA-F0-9][a-fA-F0-9]|', $lowercase_octets, $requested_url );
 	}
 
 	/**
