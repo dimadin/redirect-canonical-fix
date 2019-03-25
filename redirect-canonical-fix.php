@@ -652,3 +652,97 @@ function display_info_row( $file ) {
 	}
 }
 add_action( 'after_plugin_row', __NAMESPACE__ . '\display_info_row' );
+
+/**
+ * Filter the page number link for the current request.
+ *
+ * Based on get_pagenum_link() from WordPress core, with fixes for Trac ticket #41891.
+ * Also includes logic to get page number of filtered link.
+ *
+ * @version 5.1
+ *
+ * @global \WP_Rewrite $wp_rewrite
+ *
+ * @param string $link    The page number link.
+ * @param int    $pagenum Optional. Page ID. Default 1.
+ * @return string
+ */
+function get_pagenum_link( $link, $pagenum = 1 ) {
+	global $wp_rewrite;
+
+	if ( ! $wp_rewrite->using_permalinks() || is_admin() ) {
+		return $link;
+	}
+
+	$request = remove_query_arg( 'paged' );
+
+	// Get page number from both link and current page.
+	$link_num = get_pagenum_from_path( $link );
+
+	if ( $link_num && $link_num > 1 ) {
+		$request_num = get_pagenum_from_path( $request );
+
+		if ( $link_num === $request_num ) {
+			// TODO: check why it is the same.
+		} else {
+			$pagenum = $link_num;
+		}
+	}
+
+	$home_root = parse_url( home_url() );
+	$home_root = ( isset( $home_root['path'] ) ) ? $home_root['path'] : '';
+	$home_root = preg_quote( $home_root, '|' );
+
+	$request = preg_replace( '|^' . $home_root . '|i', '', $request );
+	$request = preg_replace( '|^/+|', '', $request );
+
+	$qs_regex = '|\?.*?$|';
+
+	preg_match( $qs_regex, $request, $qs_match );
+
+	if ( ! empty( $qs_match[0] ) ) {
+		$query_string = $qs_match[0];
+		$request      = preg_replace( $qs_regex, '', $request );
+	} else {
+		$query_string = '';
+	}
+
+	$request = preg_replace( '|' . rawurlencode( $wp_rewrite->pagination_base ) . '/\d+/?$|', '', $request );
+	$request = preg_replace( '|^' . preg_quote( $wp_rewrite->index, '|' ) . '|i', '', $request );
+	$request = ltrim( $request, '/' );
+
+	$base = trailingslashit( get_bloginfo( 'url' ) );
+
+	if ( $wp_rewrite->using_index_permalinks() && ( $pagenum > 1 || '' != $request ) ) {
+		$base .= $wp_rewrite->index . '/';
+	}
+
+	if ( $pagenum > 1 ) {
+		$request = ( ( ! empty( $request ) ) ? trailingslashit( $request ) : $request ) . user_trailingslashit( $wp_rewrite->pagination_base . '/' . $pagenum, 'paged' );
+	}
+
+	$link = $base . $request . $query_string;
+
+	return $link;
+}
+add_filter( 'get_pagenum_link', __NAMESPACE__ . '\get_pagenum_link' );
+
+/**
+ * Get numeric, last part of the URL or path.
+ *
+ * This will get any numeric-only part that is last one,
+ * no matter if there is trailing slash afterwards.
+ *
+ * @param string $path Path to look at.
+ * @return string
+ */
+function get_pagenum_from_path( $path ) {
+	preg_match( "/[^\/]*[0-9](?=\/$|$)/", $path, $matches );
+
+	if ( $matches ) {
+		return $matches[0];
+	} else {
+		return '';
+	}
+}
+
