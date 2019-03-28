@@ -676,16 +676,18 @@ function get_pagenum_link( $link, $pagenum = 1 ) {
 
 	$request = remove_query_arg( 'paged' );
 
-	// Get page number from both link and current page.
-	$link_num = get_pagenum_from_path( $link );
+	if ( version_compare( get_bloginfo( 'version' ), '5.2', '<' ) ) {
+		// Get page number from both link and current page.
+		$link_num = get_pagenum_from_path( $link );
 
-	if ( $link_num && $link_num > 1 ) {
-		$request_num = get_pagenum_from_path( $request );
+		if ( $link_num && $link_num > 1 ) {
+			$request_num = get_pagenum_from_path( $request );
 
-		if ( $link_num === $request_num ) {
-			// TODO: check why it is the same.
-		} else {
-			$pagenum = $link_num;
+			if ( $link_num === $request_num ) {
+				// TODO: check why it is the same.
+			} else {
+				$pagenum = $link_num;
+			}
 		}
 	}
 
@@ -725,7 +727,7 @@ function get_pagenum_link( $link, $pagenum = 1 ) {
 
 	return $link;
 }
-add_filter( 'get_pagenum_link', __NAMESPACE__ . '\get_pagenum_link' );
+add_filter( 'get_pagenum_link', __NAMESPACE__ . '\get_pagenum_link', 10, 2 );
 
 /**
  * Get numeric, last part of the URL or path.
