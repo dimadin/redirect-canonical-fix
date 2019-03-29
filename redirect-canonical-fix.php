@@ -4,7 +4,7 @@
  * Description: Temporary fixes for redirect_canonical() function for compatibility with Change Core Slugs plugin.
  * Author:      Milan Dinić
  * Author URI:  https://milandinic.com/
- * Version:     1.0.0-beta-1
+ * Version:     1.0.0
  */
 
 namespace dimadin\WP\Plugin\RedirectCanonicalFix;
