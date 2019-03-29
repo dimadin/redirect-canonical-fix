@@ -735,6 +735,8 @@ add_filter( 'get_pagenum_link', __NAMESPACE__ . '\get_pagenum_link', 10, 2 );
  * This will get any numeric-only part that is last one,
  * no matter if there is trailing slash afterwards.
  *
+ * @since 1.0.0
+ *
  * @param string $path Path to look at.
  * @return string
  */
